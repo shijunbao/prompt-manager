@@ -1,79 +1,128 @@
-# 提示词小助手 (AI Prompt Assistant)
+"""
+主程序入口
 
-## 简介
-提示词小助手是一个用于管理和快速调用AI提示词的桌面工具。它提供了友好的图形界面，支持提示词的分组管理、快速搜索、热键调用等功能。
+版本日志：
+v1.0 2024-03-xx
+- 初始版本
+- 实现模块化架构
+- 整合各个功能模块
+- 优化代码结构
+v1.1 2024-03-xx
+- 添加窗口最大化显示
+- 优化窗口初始化
+- 添加启动自检流程
+- 添加错误捕获和日志记录
+"""
 
-### 主要特性
-- **分组管理**：将提示词按类别整理
-- **全局搜索**：快速查找所有提示词
-- **分组搜索**：在当前分组中搜索
-- **关键词高亮**：搜索结果自动高亮显示
-- **热键支持**：为常用提示词设置快捷键
-- **一键复制**：快速复制提示词到剪贴板
-- **多标签界面**：支持主页、设置、快捷键、删除等多个标签页
+import tkinter as tk
+from gui import PromptAssistantGUI
+from data_manager import DataManager
+from hotkey_manager import HotkeyManager
+from config import GLOBAL_HOTKEY
+from winotify import Notification, audio
+import os
+import sys
+import traceback
+import logging
+from datetime import datetime
 
-## 安装方法
+# 配置日志
+def setup_logging():
+    """设置日志"""
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    
+    log_file = os.path.join('logs', f'error_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+    logging.basicConfig(
+        filename=log_file,
+        level=logging.ERROR,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
 
-### 环境要求
-- Python 3.7 或更高版本
-- 操作系统：Windows/Linux/MacOS
+def show_startup_notification():
+    """显示启动完成通知"""
+    try:
+        notification = Notification(
+            app_id="提示词小助手",
+            title="提示词小助手",
+            msg="软件启动完成，已准备就绪！",
+            duration="short"
+        )
+        notification.set_audio(audio.Default, loop=False)
+        notification.show()
+    except Exception as e:
+        logging.error(f"显示启动通知失败: {str(e)}")
 
-### 依赖包安装
-1. 克隆项目到本地：
-   ```bash
-   git clone https://github.com/shijunbao/prompt-manager
-   cd prompt-manager
-   ```
+def perform_startup_checks():
+    """执行启动自检"""
+    try:
+        # 检查data目录
+        if not os.path.exists('data'):
+            os.makedirs('data')
+            notification = Notification(
+                app_id="提示词小助手",
+                title="提示词小助手",
+                msg="已自动创建data目录",
+                duration="short"
+            )
+            notification.show()
+    except Exception as e:
+        logging.error(f"启动自检失败: {str(e)}")
+        messagebox.showerror("错误", f"启动自检失败: {str(e)}")
 
-2. 安装依赖包：
-   ```bash
-   pip install -r requirements.txt
-   ```
+def main():
+    try:
+        # 设置日志
+        setup_logging()
+        
+        # 执行启动自检
+        perform_startup_checks()
+        
+        root = tk.Tk()
+        root.title("提示词小助手")
+        
+        # 设置窗口最大化
+        root.state('zoomed')
+        
+        # 设置最小窗口大小
+        root.minsize(800, 600)
+        
+        # 初始化各个管理器
+        data_manager = DataManager()
+        hotkey_manager = HotkeyManager()
+        
+        # 创建GUI
+        app = PromptAssistantGUI(root, data_manager, hotkey_manager)
+        
+        # 加载数据
+        data_all = data_manager.load_all_json_data()
+        
+        # 注册热键
+        hotkey_manager.register_hotkeys(data_all)
+        hotkey_manager.register_global_hotkey(
+            GLOBAL_HOTKEY, 
+            lambda: app.send_cache_prompt_toclipboard()
+        )
+        hotkey_manager.start_listener()
+        
+        # 显示启动完成通知
+        show_startup_notification()
+        
+        root.mainloop()
+        
+    except Exception as e:
+        # 记录错误到日志
+        logging.error(f"程序运行错误: {str(e)}")
+        logging.error(traceback.format_exc())
+        
+        # 显示错误消息框
+        from tkinter import messagebox
+        messagebox.showerror("错误", 
+                           f"程序运行出错:\n{str(e)}\n\n详细错误信息已保存到logs目录")
+        
+        # 保持窗口显示
+        input("按回车键退出...")
+        sys.exit(1)
 
-## 使用方法流程
-
-### 启动应用
-1. 运行 `run.bat` 脚本（仅限Windows）或直接运行 `main.py`：
-   ```bash
-   python main.py
-   ```
-
-### 主界面操作
-1. **主页标签**：
-   - 查看和管理所有提示词
-   - 使用搜索框进行全局或分组搜索
-   - 点击提示词查看详细内容并进行编辑
-
-2. **设置标签**：
-   - 配置应用的各种设置，如字体大小、布局等
-
-3. **快捷键标签**：
-   - 查看和管理所有快捷键分配情况。
-   - 点击“独立专属快捷键”按钮进入快捷键删除界面
-
-4. **删除标签**：
-   - 显示删除窗口，进行提示词的删除操作
-     这样可以一遍在主界面查看具体信息，一遍根据具体内容决定删除后在删除页面进行删除。
-
-### 功能详解
-- **分组管理**：在主页标签中，可以创建、编辑和删除分组，将提示词分类管理。
-- **全局搜索**：在搜索框中输入关键词，快速查找所有提示词。
-- **分组搜索**：在当前选中的分组中进行搜索，缩小查找范围。
-- **关键词高亮**：搜索结果中的关键词会自动高亮显示，方便快速定位。
-- **热键支持**：为常用提示词设置快捷键，快速调用。
-- **一键复制**：点击提示词内容，快速复制到剪贴板。
-
-### 其他功能
-- **启动自检**：应用启动时会自动检查并创建必要的目录和文件。
-- **通知系统**：操作成功或失败时，会显示详细的通知提示。
-- **日志记录**：错误信息会记录到日志文件中，方便排查问题。
-
-## 更新日志
-请查看 `update_history.md` 文件以获取详细的更新记录。
-
-## 贡献
-欢迎提交问题和建议，帮助改进提示词小助手。
-
-## 快捷键详细说明
-
-
+if __name__ == "__main__":
+    main() 
