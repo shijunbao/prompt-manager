@@ -25,6 +25,9 @@ import sys
 import traceback
 import logging
 from datetime import datetime
+import json
+import pyperclip
+import keyboard
 
 # 配置日志
 def setup_logging():
@@ -104,6 +107,36 @@ def main():
             lambda: app.send_cache_prompt_toclipboard()
         )
         hotkey_manager.start_listener()
+        
+        # 加载高频快捷键配置
+        config_dir = os.path.join('high_frequency_hotkey')
+        config_path = os.path.join(config_dir, 'hotkey_configs.json')
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    hotkey_configs = json.load(f)
+                    
+                # 注册所有高频快捷键
+                for config in hotkey_configs.values():
+                    hotkey = config['hotkey']
+                    filename = config['filename']
+                    
+                    def create_copy_function(filename):
+                        def copy_content():
+                            try:
+                                file_path = data_manager.get_data_path(filename)
+                                with open(file_path, 'r', encoding='utf-8') as f:
+                                    data = json.load(f)
+                                    content = data.get('content', '')
+                                    pyperclip.copy(content)
+                            except Exception as e:
+                                print(f"读取prompt内容失败: {str(e)}")
+                        return copy_content
+                    
+                    keyboard.add_hotkey(hotkey, create_copy_function(filename))
+                    
+            except Exception as e:
+                logging.error(f"加载高频快捷键配置失败: {str(e)}")
         
         # 显示启动完成通知
         show_startup_notification()

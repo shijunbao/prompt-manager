@@ -10,7 +10,7 @@ v1.0 2024-03-xx
 """
 
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox
 from config import FONT_SIZES, LAYOUT, BASE_JSON_TEMPLATE
 from search_manager import SearchManager
 import pyperclip
@@ -38,7 +38,7 @@ class PromptAssistantGUI:
         for group in groups:
             self.group_list.insert(tk.END, group)
             
-        # 如果有分组，默认选中第一个分组并加载其文件
+        # 如果有分组，默认选中第一个分组加载其文件
         if groups:
             self.group_list.select_set(0)
             self.load_files_from_group(None)  # None 表示不是由事件触发
@@ -52,12 +52,17 @@ class PromptAssistantGUI:
         """设置UI界面"""
         self.create_search_frame()  # 添加搜索框架
         self.create_list_frame()
-        self.create_content_frame()
-        self.create_button_frame()
+        self.create_content_frame()  # 这个方法现在包含了按钮区域的创建
+        # 删除这行，因为按钮区域已经在 create_content_frame 中创建了
+        # self.create_button_frame()  
         
         # 新增按钮
         self.hotkeys_button = tk.Button(self.root, text="独立专属快捷键", command=self.open_hotkeys_window)
         self.hotkeys_button.pack(side=tk.BOTTOM, pady=10)
+        
+        # Add the new button for high frequency hotkey management
+        self.high_freq_hotkey_button = tk.Button(self.root, text="高频快捷键管理", command=self.open_high_freq_hotkey_window)
+        self.high_freq_hotkey_button.pack(side=tk.BOTTOM, pady=10)
         
     def create_search_frame(self):
         """创建搜索框架"""
@@ -99,135 +104,135 @@ class PromptAssistantGUI:
         
     def create_content_frame(self):
         """创建右侧内容框架"""
-        # 创建名称标签和帮助按钮的容器框架
-        name_frame = tk.Frame(self.root)
-        name_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
+        # 主框架
+        content_frame = tk.Frame(self.root)
+        content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        # 左侧容器用于放置Name标签
-        left_container = tk.Frame(name_frame)
-        left_container.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        # 创建可滚动的内容区域
+        # 使用PanedWindow来确保内容区域和按钮区域的分隔
+        paned = ttk.PanedWindow(content_frame, orient=tk.VERTICAL)
+        paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # 名称标签
-        self.name_label = tk.Label(left_container, text="Name:")
-        self.name_label.pack(side=tk.LEFT, anchor='w')
+        # 创建内容区域的容器
+        detail_container = ttk.Frame(paned)
+        paned.add(detail_container, weight=1)
         
-        # 帮助按钮 - 放在左侧容器中，紧跟Name标签
-        help_text = """使用说明：
-1. 基本操作:
-- 右侧填写prompt名称和内容
-- 点击"新建提示词"按钮创建新的prompt
-- 点击左侧分组，选择具体prompt
-- 或在搜索框中搜索并选择prompt
-
-2. 快捷键说明：
-- 默认快捷键：ctrl+b复制当前选中的prompt
-- 专属快捷键：如需设置prompt专属的全局快捷键，请在shortcut处填写
-注意：专属快捷键不要设置为ctrl+b等高频切换的默认快捷键
-
-更多详细说明请参考readme.md"""
-
-        help_label = tk.Label(left_container, text="使用说明", fg="blue", cursor="hand2")
-        help_label.pack(side=tk.LEFT, padx=(10, 0))  # 只设置左边距
+        # 创建可滚动的文本区域
+        self.detail_text = tk.Text(detail_container, wrap=tk.WORD)
+        scrollbar = ttk.Scrollbar(detail_container, orient="vertical", command=self.detail_text.yview)
+        self.detail_text.configure(yscrollcommand=scrollbar.set)
         
-        # 创建工具提示
-        def show_tooltip(event):
-            tooltip = tk.Toplevel()
-            tooltip.wm_overrideredirect(True)  # 移除窗口边框
-            
-            # 获取help_label的位置
-            x = help_label.winfo_rootx()
-            y = help_label.winfo_rooty() + help_label.winfo_height()
-            
-            # 设置tooltip位置，确保显示在help_label正下方
-            tooltip.wm_geometry(f"+{x}+{y+5}")
-            
-            # 创建文本标签
-            text = tk.Label(tooltip, text=help_text, justify=tk.LEFT,
-                           relief=tk.SOLID, borderwidth=1,
-                           bg="lightyellow", padx=5, pady=5)
-            text.pack()
-            
-            # 鼠标离开时关闭提示
-            def hide_tooltip(event):
-                tooltip.destroy()
-                
-            help_label.bind('<Leave>', hide_tooltip)
-            tooltip.bind('<Leave>', hide_tooltip)
-            
-        help_label.bind('<Enter>', show_tooltip)
+        # 打包滚动条和文本区域
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.detail_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # 名称文本框
-        self.file_pname = tk.Text(self.root, height=1, font=('Arial', FONT_SIZES['name']))
-        self.file_pname.pack(side=tk.TOP, fill=tk.X, expand=True)
+        # 创建内部Frame作为内容容器
+        self.detail_frame = ttk.Frame(self.detail_text)
+        self.detail_text.window_create("1.0", window=self.detail_frame)
+        
+        # 绑定鼠标滚轮事件到所有文本框和标签
+        def _on_mousewheel(event):
+            self.detail_text.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        # 为每个组件绑定滚轮事件
+        def bind_mousewheel(widget):
+            widget.bind("<MouseWheel>", _on_mousewheel)
+            # 递归绑定所有子组件
+            for child in widget.winfo_children():
+                bind_mousewheel(child)
+                # 特殊处理Text组件
+                if isinstance(child, tk.Text):
+                    child.bind("<MouseWheel>", lambda e: "break")  # 阻止Text组件的默认滚动行为
+        
+        # 绑定主容器及其所有子组件
+        bind_mousewheel(self.detail_frame)
+        
+        # 为detail_text本身也绑定滚轮事件
+        self.detail_text.bind("<MouseWheel>", _on_mousewheel)
+        
+        # 提示词名称
+        name_frame = ttk.Frame(self.detail_frame)
+        name_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.name_label = ttk.Label(name_frame, text="Name:", font=('Arial', FONT_SIZES['name']))
+        self.name_label.pack(side=tk.TOP, anchor='w')
+        self.file_pname = tk.Text(name_frame, height=1, font=('Arial', FONT_SIZES['name']))
+        self.file_pname.pack(fill=tk.X, pady=2)
         
         # 分组
-        self.group_label = tk.Label(self.root, text="Group:")
+        group_frame = ttk.Frame(self.detail_frame)
+        group_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.group_label = ttk.Label(group_frame, text="Group:", font=('Arial', FONT_SIZES['group']))
         self.group_label.pack(side=tk.TOP, anchor='w')
-        self.file_pgroup = tk.Text(self.root, height=1, font=('Arial', FONT_SIZES['group']))
-        self.file_pgroup.pack(side=tk.TOP, fill=tk.X, expand=True)
+        self.file_pgroup = tk.Text(group_frame, height=1, font=('Arial', FONT_SIZES['group']))
+        self.file_pgroup.pack(fill=tk.X, pady=2)
         
-        # 快捷键
-        self.shortcut_label = tk.Label(self.root, text="Shortcut:")
+        # 独立专属快捷键
+        shortcut_frame = ttk.Frame(self.detail_frame)
+        shortcut_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.shortcut_label = ttk.Label(shortcut_frame, text="独立专属快捷键:", font=('Arial', FONT_SIZES['shortcut']))
         self.shortcut_label.pack(side=tk.TOP, anchor='w')
-        self.file_pshortcut = tk.Text(self.root, height=1, font=('Arial', FONT_SIZES['shortcut']))
-        self.file_pshortcut.pack(side=tk.TOP, fill=tk.X, expand=True)
+        self.file_pshortcut = tk.Text(shortcut_frame, height=1, font=('Arial', FONT_SIZES['shortcut']))
+        self.file_pshortcut.pack(fill=tk.X, pady=2)
         
         # 备注
-        self.comment_label = tk.Label(self.root, text="Comment:")
+        comment_frame = ttk.Frame(self.detail_frame)
+        comment_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.comment_label = ttk.Label(comment_frame, text="Comment:", font=('Arial', FONT_SIZES['comment']))
         self.comment_label.pack(side=tk.TOP, anchor='w')
-        self.file_pcomment = tk.Text(self.root, height=3, font=('Arial', FONT_SIZES['comment']))
-        self.file_pcomment.pack(side=tk.TOP, fill=tk.X, expand=True)
+        self.file_pcomment = tk.Text(comment_frame, height=3, font=('Arial', FONT_SIZES['comment']))
+        self.file_pcomment.pack(fill=tk.X, pady=2)
         
         # 内容
-        self.content_label = tk.Label(self.root, text="Content:")
+        content_frame = ttk.Frame(self.detail_frame)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        self.content_label = ttk.Label(content_frame, text="Content:", font=('Arial', FONT_SIZES['content']))
         self.content_label.pack(side=tk.TOP, anchor='w')
-        self.file_content = tk.Text(self.root, height=12, font=('Arial', FONT_SIZES['content']))
-        self.file_content.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.file_content = tk.Text(content_frame, height=24, font=('Arial', FONT_SIZES['content']))
+        self.file_content.pack(fill=tk.BOTH, expand=True, pady=2)
         
-    def create_button_frame(self):
-        """创建底部按钮框架"""
-        button_frame = tk.Frame(self.root)
-        button_frame.pack(side=tk.LEFT, fill=tk.Y, expand=True, anchor='w')
+        # 禁用主Text组件的编辑功能
+        self.detail_text.configure(state='disabled')
         
-        # 修改删除按钮的命令
-        self.delete_button = tk.Button(button_frame, text="Delete", command=self.show_delete_window)
-        self.delete_button.pack(side=tk.LEFT)
+        # 在所有组件创建完成后，再次绑定滚轮事件（确保新创建的组件都被绑定）
+        bind_mousewheel(self.detail_frame)
         
-        # 状态标签
-        self.label1 = tk.Label(button_frame, text="当前选中的提示词", 
+        # 创建底部按钮区域
+        button_frame = ttk.Frame(paned)
+        paned.add(button_frame)
+        
+        # 左侧按钮组
+        left_button_frame = ttk.Frame(button_frame)
+        left_button_frame.pack(side=tk.LEFT)
+        
+        self.delete_button = ttk.Button(left_button_frame, text="Delete", command=self.show_delete_window)
+        self.delete_button.pack(side=tk.LEFT, padx=5)
+        
+        self.label1 = ttk.Label(left_button_frame, text="当前选中的提示词", 
                              font=("Arial", FONT_SIZES['status']))
-        self.label1.pack(side=tk.LEFT)
+        self.label1.pack(side=tk.LEFT, padx=5)
         
-        self.label2 = tk.Label(button_frame, text="", bg="light green", 
+        self.label2 = ttk.Label(left_button_frame, text="", background="light green", 
                              width=LAYOUT['status_width'], 
                              font=("Arial", FONT_SIZES['status']))
-        self.label2.pack(side=tk.LEFT)
+        self.label2.pack(side=tk.LEFT, padx=5)
         
-        # 右侧按钮框架
-        button_frame_right = tk.Frame(self.root)
-        button_frame_right.pack(side=tk.RIGHT)
+        # 右侧按钮组
+        right_button_frame = ttk.Frame(button_frame)
+        right_button_frame.pack(side=tk.RIGHT)
         
-        # 新建按钮
-        self.add_button = tk.Button(button_frame_right, text="新建提示词", command=self.add_file)
-        self.add_button.pack(side=tk.LEFT)
+        self.add_button = ttk.Button(right_button_frame, text="新建提示词", command=self.add_file)
+        self.add_button.pack(side=tk.LEFT, padx=5)
         
-        # 保存按钮
-        self.save_button = tk.Button(button_frame_right, text="保存修改", command=self.save_changes)
-        self.save_button.pack(side=tk.LEFT)
+        self.save_button = ttk.Button(right_button_frame, text="保存修改", command=self.save_changes)
+        self.save_button.pack(side=tk.LEFT, padx=5)
         
-        # 复制按
-        self.copy_button = tk.Button(button_frame_right, text="Copy", command=self.copy_content)
-        self.copy_button.pack(side=tk.LEFT)
+        self.copy_button = ttk.Button(right_button_frame, text="Copy", command=self.copy_content)
+        self.copy_button.pack(side=tk.LEFT, padx=5)
         
-        # 修改退出按钮 - 加大尺寸
-        self.exit_button = tk.Button(button_frame_right, 
+        self.exit_button = ttk.Button(right_button_frame, 
                                     text="退出", 
-                                    command=self.root.destroy,
-                                    fg='green',
-                                    width=10,  # 加宽
-                                    height=2,  # 加高
-                                    font=('Arial', FONT_SIZES['status'] + 2))  # 加大字体
-        self.exit_button.pack(side=tk.LEFT, padx=(20, 10), pady=5)  # 增加边距
+                                    command=self.root.destroy)
+        self.exit_button.pack(side=tk.LEFT, padx=(20, 10), pady=5)
         
     def load_files_from_group(self, event):
         """从选中的分组加载文件"""
@@ -371,7 +376,7 @@ class PromptAssistantGUI:
         
         try:
             self.data_manager.save_prompt(self.current_file, data)
-            # 保存到缓存，这样ctrl+b才能获取到最新内容
+            # 保存到缓存，这样ctrl+b能获取到最新内容
             self.data_manager.cache_prompt(data['content'])
             # 显示通知
             notification = Notification(
@@ -407,7 +412,7 @@ class PromptAssistantGUI:
         pyperclip.copy(content)
         
     def refresh_lists(self):
-        """刷新列表"""
+        """新列表"""
         # 刷新分组列表
         self.group_list.delete(0, tk.END)
         groups = self.data_manager.get_all_groups()
@@ -534,3 +539,8 @@ class PromptAssistantGUI:
         """打开独立专属快捷键配置界面"""
         from hotkeys.hotkeys_window import HotkeysWindow
         HotkeysWindow(self.root, self.data_manager)
+
+    def open_high_freq_hotkey_window(self):
+        """打开高频快捷键管理界面"""
+        from high_frequency_hotkey.high_freq_hotkey_window import HighFreqHotkeyWindow
+        HighFreqHotkeyWindow(self.root, self.data_manager)
