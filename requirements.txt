@@ -1,3 +1,2 @@
-winotify
 pyperclip
 keyboard

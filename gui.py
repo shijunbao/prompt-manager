@@ -38,7 +38,7 @@ class PromptAssistantGUI:
         for group in groups:
             self.group_list.insert(tk.END, group)
             
-        # 如果有分组，默认选中第一个分组加载其文件
+        # 如果有分组，默认选中第一个分组载其文件
         if groups:
             self.group_list.select_set(0)
             self.load_files_from_group(None)  # None 表示不是由事件触发
@@ -122,7 +122,7 @@ class PromptAssistantGUI:
         scrollbar = ttk.Scrollbar(detail_container, orient="vertical", command=self.detail_text.yview)
         self.detail_text.configure(yscrollcommand=scrollbar.set)
         
-        # 打包滚动条和文本区域
+        # 打包动条和文本区域
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.detail_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
@@ -220,11 +220,18 @@ class PromptAssistantGUI:
         right_button_frame = ttk.Frame(button_frame)
         right_button_frame.pack(side=tk.RIGHT)
         
-        self.add_button = ttk.Button(right_button_frame, text="新建提示词", command=self.add_file)
+        # 使用tk.Button替代ttk.Button以支持背景色变化
+        self.add_button = tk.Button(right_button_frame, text="新建提示词")
         self.add_button.pack(side=tk.LEFT, padx=5)
         
-        self.save_button = ttk.Button(right_button_frame, text="保存修改", command=self.save_changes)
+        # 绑定按钮按下和释放事件
+        self.add_button.bind('<ButtonPress-1>', self.on_add_button_press)
+        self.add_button.bind('<ButtonRelease-1>', self.on_add_button_release)
+        
+        self.save_button = tk.Button(right_button_frame, text="保存修改")  # 使用 tk.Button 以支持背景色变化
         self.save_button.pack(side=tk.LEFT, padx=5)
+        self.save_button.bind('<ButtonPress-1>', self.on_save_button_press)
+        self.save_button.bind('<ButtonRelease-1>', self.on_save_button_release)
         
         self.copy_button = ttk.Button(right_button_frame, text="Copy", command=self.copy_content)
         self.copy_button.pack(side=tk.LEFT, padx=5)
@@ -307,14 +314,6 @@ class PromptAssistantGUI:
         """添加文件"""
         name = self.file_pname.get("1.0", "end-1c").strip()
         if not name:
-            notification = Notification(
-                app_id="提示词小助手",
-                title="提示词小助手",
-                msg="请输入提示词名称",
-                duration="short"
-            )
-            notification.set_audio(audio.Default, loop=False)
-            notification.show()
             return
             
         name1 = re.sub(r'\W+', '_', name)
@@ -340,24 +339,8 @@ class PromptAssistantGUI:
             # 保存到缓存
             self.data_manager.cache_prompt(data['content'])
             self.refresh_lists()
-            # 显示通知
-            notification = Notification(
-                app_id="提示词小助手",
-                title="提示词小助手",
-                msg=f"成功创建新提示词：{name}",
-                duration="short"
-            )
-            notification.set_audio(audio.Default, loop=False)
-            notification.show()
         except Exception as e:
-            notification = Notification(
-                app_id="提示词小助手",
-                title="提示词小助手",
-                msg=f"创建提示词失败：{str(e)}",
-                duration="short"
-            )
-            notification.set_audio(audio.Default, loop=False)
-            notification.show()
+            messagebox.showerror("错误", f"创建提示词失败：{str(e)}")
         
     def save_changes(self):
         """保存修改"""
@@ -378,24 +361,8 @@ class PromptAssistantGUI:
             self.data_manager.save_prompt(self.current_file, data)
             # 保存到缓存，这样ctrl+b能获取到最新内容
             self.data_manager.cache_prompt(data['content'])
-            # 显示通知
-            notification = Notification(
-                app_id="提示词小助手",
-                title="提示词小助手",
-                msg=f"成功保存修改：{data['name']}",
-                duration="short"
-            )
-            notification.set_audio(audio.Default, loop=False)
-            notification.show()
         except Exception as e:
-            notification = Notification(
-                app_id="提示词小助手",
-                title="提示词小助手",
-                msg=f"保存修改失败：{str(e)}",
-                duration="short"
-            )
-            notification.set_audio(audio.Default, loop=False)
-            notification.show()
+            messagebox.showerror("错误", f"保存修改失败：{str(e)}")
         
     def delete_file(self):
         """删除文件"""
@@ -524,17 +491,6 @@ class PromptAssistantGUI:
         from delete_module.delete_window import DeleteWindow
         DeleteWindow(self.root, self.data_manager)
 
-    def show_notification(self, message, duration="short"):
-        """显示通知"""
-        notification = Notification(
-            app_id="提示词小助手",
-            title="提示词小助手",
-            msg=message,
-            duration=duration
-        )
-        notification.set_audio(audio.Default, loop=False)
-        notification.show()
-
     def open_hotkeys_window(self):
         """打开独立专属快捷键配置界面"""
         from hotkeys.hotkeys_window import HotkeysWindow
@@ -544,3 +500,35 @@ class PromptAssistantGUI:
         """打开高频快捷键管理界面"""
         from high_frequency_hotkey.high_freq_hotkey_window import HighFreqHotkeyWindow
         HighFreqHotkeyWindow(self.root, self.data_manager)
+
+    def on_add_button_press(self, event):
+        """新建按钮按下时的效果"""
+        self.add_button.configure(bg='yellow')  # 按钮变黄
+        self.file_list.configure(bg='yellow')   # 列表变黄
+
+    def on_add_button_release(self, event):
+        """新建按钮释放时的效果"""
+        self.add_button.configure(bg='SystemButtonFace')  # 恢复按钮默认颜色
+        self.file_list.configure(bg='white')    # 恢复列表默认颜色
+        self.add_file()  # 执行新建操作
+
+    def on_save_button_press(self, event):
+        """保存按钮按下时的效果"""
+        self.file_content.configure(bg='light green')
+        # 记录按下的时间
+        self.save_button_press_time = event.time
+
+    def on_save_button_release(self, event):
+        """保存按钮释放时的效果"""
+        # 计算按下的持续时间（毫秒）
+        press_duration = (event.time - self.save_button_press_time) * 1000  # 转换为毫秒
+        
+        if press_duration < 1000:  # 如果按下时间不足1秒
+            # 设置定时器，确保从按下开始算起满1秒后再恢复颜色
+            self.root.after(1000, lambda: self.file_content.configure(bg='white'))
+        else:
+            # 如果已经超过1秒，立即恢复颜色
+            self.file_content.configure(bg='white')
+        
+        # 执行保存操作
+        self.save_changes()

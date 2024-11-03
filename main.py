@@ -19,7 +19,6 @@ from gui import PromptAssistantGUI
 from data_manager import DataManager
 from hotkey_manager import HotkeyManager
 from config import GLOBAL_HOTKEY
-from winotify import Notification, audio
 import os
 import sys
 import traceback
@@ -42,33 +41,12 @@ def setup_logging():
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
-def show_startup_notification():
-    """显示启动完成通知"""
-    try:
-        notification = Notification(
-            app_id="提示词小助手",
-            title="提示词小助手",
-            msg="软件启动完成，已准备就绪！",
-            duration="short"
-        )
-        notification.set_audio(audio.Default, loop=False)
-        notification.show()
-    except Exception as e:
-        logging.error(f"显示启动通知失败: {str(e)}")
-
 def perform_startup_checks():
     """执行启动自检"""
     try:
         # 检查data目录
         if not os.path.exists('data'):
             os.makedirs('data')
-            notification = Notification(
-                app_id="提示词小助手",
-                title="提示词小助手",
-                msg="已自动创建data目录",
-                duration="short"
-            )
-            notification.show()
     except Exception as e:
         logging.error(f"启动自检失败: {str(e)}")
         messagebox.showerror("错误", f"启动自检失败: {str(e)}")
@@ -137,9 +115,6 @@ def main():
                     
             except Exception as e:
                 logging.error(f"加载高频快捷键配置失败: {str(e)}")
-        
-        # 显示启动完成通知
-        show_startup_notification()
         
         root.mainloop()
         

@@ -1,10 +1,22 @@
 {
     "1": {
-        "hotkey": "ctrl+t",
-        "filename": "哈哈哈哈_0003.json"
+        "hotkey": "ctrl+g",
+        "filename": "ubuntu_常用命令_linux.json"
     },
     "2": {
+        "hotkey": "ctrl+t",
+        "filename": "符号化_测试版_002.json"
+    },
+    "3": {
         "hotkey": "ctrl+y",
-        "filename": "哈哈哈哈_0005.json"
+        "filename": "通用数学002_简答.json"
+    },
+    "4": {
+        "hotkey": "alt+q",
+        "filename": "符号化_测试版_002.json"
+    },
+    "2": {
+        "hotkey": "ctrl+t",
+        "filename": "vllm_FusionNet_34Bx2_MoE_AWQ备份.json"
     }
 }
