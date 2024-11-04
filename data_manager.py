@@ -18,12 +18,16 @@ import re
 from typing import List, Dict
 import zipfile
 import time
+from configs.configs_data import DATA_PATHS
+from configs.set_configs import get_config
 
 class DataManager:
     def __init__(self):
-        self.data_all = []
-        self.data_dir = 'data'  # 数据目录
+        # 加载配置的数据目录
+        config = get_config()
+        self.data_dir = config.get('data_dir', DATA_PATHS['data_dir'])
         self.ensure_data_directory()
+        self.data_all = []
         
     def ensure_data_directory(self):
         """确保data目录存在"""

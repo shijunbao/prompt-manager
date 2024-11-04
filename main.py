@@ -72,7 +72,7 @@ def main():
         # 设置最小窗口大小
         root.minsize(800, 600)
         
-        # 初始化各个管理器
+        # 初始化数据管理器 - 会自动加载配置的数据目录
         data_manager = DataManager()
         hotkey_manager = HotkeyManager()
         

@@ -57,6 +57,15 @@ class PromptAssistantGUI:
         left_button_frame = ttk.Frame(top_frame)
         left_button_frame.pack(side=tk.LEFT)
         
+        # 其他设置按钮 - 移到最左侧
+        self.settings_button = ttk.Button(
+            left_button_frame, 
+            text="其他设置",
+            command=self.open_settings
+        )
+        self.settings_button.pack(side=tk.LEFT, padx=5)
+        
+        # Delete按钮
         self.delete_button = ttk.Button(left_button_frame, text="Delete", command=self.show_delete_window)
         self.delete_button.pack(side=tk.LEFT, padx=5)
         
@@ -379,13 +388,40 @@ class PromptAssistantGUI:
         pyperclip.copy(content)
         
     def refresh_lists(self):
-        """新列表"""
+        """刷新列表"""
+        # 保存当前选中的分组
+        current_group = None
+        if self.group_list.curselection():
+            current_group = self.group_list.get(self.group_list.curselection())
+        
         # 刷新分组列表
         self.group_list.delete(0, tk.END)
         groups = self.data_manager.get_all_groups()
+        
+        # 清空文件列表和内容显示
+        self.file_list.delete(0, tk.END)
+        self.clear_text_fields()
+        
+        # 如果没有分组，直接返回
+        if not groups:
+            return
+            
+        # 有分组时的处理
         for group in groups:
             self.group_list.insert(tk.END, group)
             
+        # 如果之前有选中的分组，尝试重新选中它
+        if current_group and current_group in groups:
+            index = groups.index(current_group)
+            self.group_list.select_set(index)
+            # 加载该分组的文件
+            self.load_files_from_group(None)
+        # 如果没有之前选中的分组，但有分组存在，选中第一个
+        elif groups:
+            self.group_list.select_set(0)
+            # 加载第一个分组的文件
+            self.load_files_from_group(None)
+        
     def send_cache_prompt_toclipboard(self):
         """发送缓存的提示词到剪贴板"""
         content = self.data_manager.read_cached_prompt()
@@ -531,7 +567,7 @@ class PromptAssistantGUI:
             # 设置定时器，确保从按下开始算起满1秒后再恢复颜色
             self.root.after(1000, lambda: self.file_content.configure(bg='white'))
         else:
-            # 果已经超过1秒，立即恢复颜色
+            # 果已经超过1秒，立恢复颜色
             self.file_content.configure(bg='white')
         
         # 执行保存操作
@@ -555,3 +591,16 @@ class PromptAssistantGUI:
                 content,
                 callback=update_main_content  # 传入回调函数
             )
+
+    def open_settings(self):
+        """打开设置窗口"""
+        from configs.set_configs import SettingsWindow
+        
+        def on_config_updated(new_config):
+            """配置更新后的回调函数"""
+            # 更新数据管理器的路径
+            self.data_manager.data_dir = new_config['data_dir']
+            # 重新加载数据并刷新界面
+            self.refresh_lists()
+        
+        SettingsWindow(self.root, callback=on_config_updated)
