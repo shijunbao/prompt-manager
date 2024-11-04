@@ -124,12 +124,8 @@ def main():
         logging.error(traceback.format_exc())
         
         # 显示错误消息框
-        from tkinter import messagebox
         messagebox.showerror("错误", 
                            f"程序运行出错:\n{str(e)}\n\n详细错误信息已保存到logs目录")
-        
-        # 保持窗口显示
-        input("按回车键退出...")
         sys.exit(1)
 
 if __name__ == "__main__":

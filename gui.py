@@ -17,7 +17,6 @@ import pyperclip
 import re
 import os
 import json
-from winotify import Notification, audio
 
 class PromptAssistantGUI:
     def __init__(self, root: tk.Tk, data_manager, hotkey_manager):
@@ -50,19 +49,58 @@ class PromptAssistantGUI:
         
     def setup_ui(self):
         """设置UI界面"""
-        self.create_search_frame()  # 添加搜索框架
+        # 创建顶部按钮和状态栏区域
+        top_frame = ttk.Frame(self.root)
+        top_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        
+        # 左侧按钮组
+        left_button_frame = ttk.Frame(top_frame)
+        left_button_frame.pack(side=tk.LEFT)
+        
+        self.delete_button = ttk.Button(left_button_frame, text="Delete", command=self.show_delete_window)
+        self.delete_button.pack(side=tk.LEFT, padx=5)
+        
+        # 状态显示标签
+        self.label1 = ttk.Label(left_button_frame, text="当前选中的提示词", 
+                             font=("Arial", FONT_SIZES['status']))
+        self.label1.pack(side=tk.LEFT, padx=5)
+        
+        self.label2 = ttk.Label(left_button_frame, text="", background="light green", 
+                             width=LAYOUT['status_width'], 
+                             font=("Arial", FONT_SIZES['status']))
+        self.label2.pack(side=tk.LEFT, padx=5)
+        
+        # 右侧按钮组
+        right_button_frame = ttk.Frame(top_frame)
+        right_button_frame.pack(side=tk.RIGHT)
+        
+        # 功能按钮
+        self.hotkeys_button = ttk.Button(right_button_frame, text="独立专属快捷键", command=self.open_hotkeys_window)
+        self.hotkeys_button.pack(side=tk.LEFT, padx=5)
+        
+        self.high_freq_hotkey_button = ttk.Button(right_button_frame, text="高频快捷键管理", command=self.open_high_freq_hotkey_window)
+        self.high_freq_hotkey_button.pack(side=tk.LEFT, padx=5)
+        
+        self.add_button = tk.Button(right_button_frame, text="新建提示词")
+        self.add_button.pack(side=tk.LEFT, padx=5)
+        self.add_button.bind('<ButtonPress-1>', self.on_add_button_press)
+        self.add_button.bind('<ButtonRelease-1>', self.on_add_button_release)
+        
+        self.save_button = tk.Button(right_button_frame, text="保存修改")
+        self.save_button.pack(side=tk.LEFT, padx=5)
+        self.save_button.bind('<ButtonPress-1>', self.on_save_button_press)
+        self.save_button.bind('<ButtonRelease-1>', self.on_save_button_release)
+        
+        self.copy_button = ttk.Button(right_button_frame, text="Copy", command=self.copy_content)
+        self.copy_button.pack(side=tk.LEFT, padx=5)
+        
+        self.exit_button = ttk.Button(right_button_frame, text="退出", command=self.root.destroy)
+        self.exit_button.pack(side=tk.LEFT, padx=(20, 10))
+        
+        # 创建其他界面元素
+        self.create_search_frame()
         self.create_list_frame()
-        self.create_content_frame()  # 这个方法现在包含了按钮区域的创建
-        # 删除这行，因为按钮区域已经在 create_content_frame 中创建了
-        # self.create_button_frame()  
-        
-        # 新增按钮
-        self.hotkeys_button = tk.Button(self.root, text="独立专属快捷键", command=self.open_hotkeys_window)
-        self.hotkeys_button.pack(side=tk.BOTTOM, pady=10)
-        
-        # Add the new button for high frequency hotkey management
-        self.high_freq_hotkey_button = tk.Button(self.root, text="高频快捷键管理", command=self.open_high_freq_hotkey_window)
-        self.high_freq_hotkey_button.pack(side=tk.BOTTOM, pady=10)
+        self.create_content_frame()
         
     def create_search_frame(self):
         """创建搜索框架"""
@@ -122,7 +160,7 @@ class PromptAssistantGUI:
         scrollbar = ttk.Scrollbar(detail_container, orient="vertical", command=self.detail_text.yview)
         self.detail_text.configure(yscrollcommand=scrollbar.set)
         
-        # 打包动条和文本区域
+        # 打包动条和文区域
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.detail_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
@@ -147,7 +185,7 @@ class PromptAssistantGUI:
         # 绑定主容器及其所有子组件
         bind_mousewheel(self.detail_frame)
         
-        # 为detail_text本身也绑定滚轮事件
+        # 为detail_text本也绑定滚轮事件
         self.detail_text.bind("<MouseWheel>", _on_mousewheel)
         
         # 提示词名称
@@ -182,11 +220,15 @@ class PromptAssistantGUI:
         self.file_pcomment = tk.Text(comment_frame, height=3, font=('Arial', FONT_SIZES['comment']))
         self.file_pcomment.pack(fill=tk.X, pady=2)
         
+        # 修改content标签文本
+        self.content_label = ttk.Label(content_frame, 
+                                     text="双击content编辑区域进行放大编辑", 
+                                     font=('Arial', FONT_SIZES['content']))
+        self.content_label.pack(side=tk.TOP, anchor='w')
+        
         # 内容
         content_frame = ttk.Frame(self.detail_frame)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        self.content_label = ttk.Label(content_frame, text="Content:", font=('Arial', FONT_SIZES['content']))
-        self.content_label.pack(side=tk.TOP, anchor='w')
         self.file_content = tk.Text(content_frame, height=24, font=('Arial', FONT_SIZES['content']))
         self.file_content.pack(fill=tk.BOTH, expand=True, pady=2)
         
@@ -196,50 +238,8 @@ class PromptAssistantGUI:
         # 在所有组件创建完成后，再次绑定滚轮事件（确保新创建的组件都被绑定）
         bind_mousewheel(self.detail_frame)
         
-        # 创建底部按钮区域
-        button_frame = ttk.Frame(paned)
-        paned.add(button_frame)
-        
-        # 左侧按钮组
-        left_button_frame = ttk.Frame(button_frame)
-        left_button_frame.pack(side=tk.LEFT)
-        
-        self.delete_button = ttk.Button(left_button_frame, text="Delete", command=self.show_delete_window)
-        self.delete_button.pack(side=tk.LEFT, padx=5)
-        
-        self.label1 = ttk.Label(left_button_frame, text="当前选中的提示词", 
-                             font=("Arial", FONT_SIZES['status']))
-        self.label1.pack(side=tk.LEFT, padx=5)
-        
-        self.label2 = ttk.Label(left_button_frame, text="", background="light green", 
-                             width=LAYOUT['status_width'], 
-                             font=("Arial", FONT_SIZES['status']))
-        self.label2.pack(side=tk.LEFT, padx=5)
-        
-        # 右侧按钮组
-        right_button_frame = ttk.Frame(button_frame)
-        right_button_frame.pack(side=tk.RIGHT)
-        
-        # 使用tk.Button替代ttk.Button以支持背景色变化
-        self.add_button = tk.Button(right_button_frame, text="新建提示词")
-        self.add_button.pack(side=tk.LEFT, padx=5)
-        
-        # 绑定按钮按下和释放事件
-        self.add_button.bind('<ButtonPress-1>', self.on_add_button_press)
-        self.add_button.bind('<ButtonRelease-1>', self.on_add_button_release)
-        
-        self.save_button = tk.Button(right_button_frame, text="保存修改")  # 使用 tk.Button 以支持背景色变化
-        self.save_button.pack(side=tk.LEFT, padx=5)
-        self.save_button.bind('<ButtonPress-1>', self.on_save_button_press)
-        self.save_button.bind('<ButtonRelease-1>', self.on_save_button_release)
-        
-        self.copy_button = ttk.Button(right_button_frame, text="Copy", command=self.copy_content)
-        self.copy_button.pack(side=tk.LEFT, padx=5)
-        
-        self.exit_button = ttk.Button(right_button_frame, 
-                                    text="退出", 
-                                    command=self.root.destroy)
-        self.exit_button.pack(side=tk.LEFT, padx=(20, 10), pady=5)
+        # 在创建file_content后添加双击事件绑定
+        self.file_content.bind('<Double-Button-1>', self.open_edit_window)
         
     def load_files_from_group(self, event):
         """从选中的分组加载文件"""
@@ -359,7 +359,7 @@ class PromptAssistantGUI:
         
         try:
             self.data_manager.save_prompt(self.current_file, data)
-            # 保存到缓存，这样ctrl+b能获取到最新内容
+            # 保存到缓存
             self.data_manager.cache_prompt(data['content'])
         except Exception as e:
             messagebox.showerror("错误", f"保存修改失败：{str(e)}")
@@ -399,7 +399,7 @@ class PromptAssistantGUI:
         self.group_search_entry.delete(0, tk.END)
         
         if not keyword:
-            self.refresh_lists()  # 清空搜索时恢复原始显示
+            self.refresh_lists()  # 清空搜索时恢复始显示
             return
             
         # 清空当前列表
@@ -488,8 +488,12 @@ class PromptAssistantGUI:
 
     def show_delete_window(self):
         """显示删除窗口"""
-        from delete_module.delete_window import DeleteWindow
-        DeleteWindow(self.root, self.data_manager)
+        try:
+            from delete_module.delete_window import DeleteWindow
+            DeleteWindow(self.root, self.data_manager)
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开删除窗口: {str(e)}\n请检查delete_module目录是否存在")
+            print(f"打开删除窗口错误: {str(e)}")
 
     def open_hotkeys_window(self):
         """打开独立专属快捷键配置界面"""
@@ -527,8 +531,27 @@ class PromptAssistantGUI:
             # 设置定时器，确保从按下开始算起满1秒后再恢复颜色
             self.root.after(1000, lambda: self.file_content.configure(bg='white'))
         else:
-            # 如果已经超过1秒，立即恢复颜色
+            # 果已经超过1秒，立即恢复颜色
             self.file_content.configure(bg='white')
         
         # 执行保存操作
         self.save_changes()
+
+    def open_edit_window(self, event):
+        """打开编辑窗口"""
+        if self.current_file:
+            from edit_prompt_content import EditPromptWindow
+            content = self.file_content.get('1.0', 'end-1c')
+            
+            # 添加回调函数用于更新主界面内容
+            def update_main_content(new_content):
+                self.file_content.delete('1.0', tk.END)
+                self.file_content.insert('1.0', new_content)
+            
+            edit_window = EditPromptWindow(
+                self.root,
+                self.data_manager,
+                self.current_file,
+                content,
+                callback=update_main_content  # 传入回调函数
+            )

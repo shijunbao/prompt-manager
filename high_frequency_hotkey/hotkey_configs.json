@@ -1,11 +1,11 @@
 {
     "1": {
         "hotkey": "ctrl+g",
-        "filename": "ubuntu_常用命令_linux.json"
+        "filename": "联网查询_高等数学知识.json"
     },
     "2": {
         "hotkey": "ctrl+t",
-        "filename": "符号化_测试版_002.json"
+        "filename": "vllm_FusionNet_34Bx2_MoE_AWQ备份.json"
     },
     "3": {
         "hotkey": "ctrl+y",
@@ -15,8 +15,20 @@
         "hotkey": "alt+q",
         "filename": "符号化_测试版_002.json"
     },
+    "1": {
+        "hotkey": "ctrl+g",
+        "filename": "test1.json"
+    },
     "2": {
         "hotkey": "ctrl+t",
-        "filename": "vllm_FusionNet_34Bx2_MoE_AWQ备份.json"
+        "filename": "test1_0001.json"
+    },
+    "3": {
+        "hotkey": "ctrl+y",
+        "filename": "test1_0002.json"
+    },
+    "4": {
+        "hotkey": "alt+q",
+        "filename": "test1_0003.json"
     }
 }

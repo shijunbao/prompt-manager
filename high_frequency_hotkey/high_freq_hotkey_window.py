@@ -78,6 +78,9 @@ class HighFreqHotkeyWindow:
         self.window.geometry("1000x800")
         self.data_manager = data_manager
         
+        # 绑定右键双击事件到窗口
+        self.window.bind('<Double-Button-3>', lambda e: self.window.destroy())
+        
         # 当前选中的提示词数据
         self.current_prompt = None
         
@@ -95,15 +98,39 @@ class HighFreqHotkeyWindow:
 
     def setup_ui(self):
         """设置UI界面"""
+        # 添加红色加粗提示语句
+        tip_frame = ttk.Frame(self.window)
+        tip_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        tip_frame.bind('<Double-Button-3>', lambda e: self.window.destroy())
+        
+        tip_label = ttk.Label(tip_frame, 
+                             text="鼠标右键双击任意位置关闭本窗口", 
+                             font=('Arial', 10, 'bold'),
+                             foreground='red')
+        tip_label.pack(pady=5)
+        tip_label.bind('<Double-Button-3>', lambda e: self.window.destroy())
+        
+        # 为每个创建的组件添加右键双击事件
+        def add_right_click_binding(widget):
+            widget.bind('<Double-Button-3>', lambda e: self.window.destroy())
+            # 如果是容器类组件,为其子组件也添加绑定
+            if isinstance(widget, (tk.Frame, ttk.Frame)):
+                for child in widget.winfo_children():
+                    add_right_click_binding(child)
+        
         self.create_search_frame()
         self.create_list_frame()
         self.create_content_frame()
         self.create_hotkey_frame()
+        
+        # 为所有已创建的组件添加右键双击事件
+        add_right_click_binding(self.window)
 
     def create_search_frame(self):
         """创建搜索框架"""
         search_frame = tk.Frame(self.window)
         search_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        search_frame.bind('<Double-Button-3>', lambda e: self.window.destroy())
         
         # 全局搜索
         global_search_label = tk.Label(search_frame, text="全局搜索:")
@@ -368,7 +395,8 @@ class HighFreqHotkeyWindow:
         """创建左侧列表框架"""
         list_frame = tk.Frame(self.window)
         list_frame.pack(side=tk.LEFT, fill=tk.Y, expand=True, anchor='w')
-
+        list_frame.bind('<Double-Button-3>', lambda e: self.window.destroy())
+        
         # 分组列表
         self.group_list = tk.Listbox(list_frame, width=20, font=('Arial', 12))
         self.group_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -382,8 +410,9 @@ class HighFreqHotkeyWindow:
     def create_content_frame(self):
         """创建右侧内容框架"""
         content_frame = tk.Frame(self.window)
-        content_frame.pack(side=tk.TOP, fill=tk.X, expand=False)  # 修改为不要占用太多空间
-
+        content_frame.pack(side=tk.TOP, fill=tk.X, expand=False)
+        content_frame.bind('<Double-Button-3>', lambda e: self.window.destroy())
+        
         # 提示词名称文本框
         self.prompt_name_label = tk.Label(content_frame, text="提示词名称:", font=('Arial', 14))
         self.prompt_name_label.pack(pady=5)  # 减小间距
