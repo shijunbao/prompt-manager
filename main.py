@@ -1,20 +1,9 @@
 """
 主程序入口
-
-版本日志：
-v1.0 2024-03-xx
-- 初始版本
-- 实现模块化架构
-- 整合各个功能模块
-- 优化代码结构
-v1.1 2024-03-xx
-- 添加窗口最大化显示
-- 优化窗口初始化
-- 添加启动自检流程
-- 添加错误捕获和日志记录
 """
 
 import tkinter as tk
+from tkinter import messagebox  # 添加messagebox导入
 from gui import PromptAssistantGUI
 from data_manager import DataManager
 from hotkey_manager import HotkeyManager
@@ -51,6 +40,21 @@ def perform_startup_checks():
         logging.error(f"启动自检失败: {str(e)}")
         messagebox.showerror("错误", f"启动自检失败: {str(e)}")
 
+def maximize_window(root):
+    """跨平台窗口最大化"""
+    try:
+        # Windows平台
+        root.state('zoomed')
+    except:
+        try:
+            # Linux/Unix平台
+            root.attributes('-zoomed', True)
+        except:
+            # 如果以上方法都失败，使用屏幕尺寸
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            root.geometry(f"{screen_width}x{screen_height}+0+0")
+
 def main():
     try:
         # 设置日志
@@ -62,8 +66,8 @@ def main():
         root = tk.Tk()
         root.title("提示词小助手")
         
-        # 设置窗口最大化
-        root.state('zoomed')
+        # 使用跨平台的窗口最大化方法
+        maximize_window(root)
         
         # 设置最小窗口大小
         root.minsize(800, 600)
