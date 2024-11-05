@@ -26,6 +26,21 @@ class DataManager:
         # 加载配置的数据目录
         config = get_config()
         self.data_dir = config.get('data_dir', DATA_PATHS['data_dir'])
+        
+        # 检查配置的目录是否存在，如果不存在则使用默认目录
+        if not os.path.exists(self.data_dir):
+            print(f"警告: 配置的数据目录 {self.data_dir} 不存在，将使用默认目录")
+            self.data_dir = DATA_PATHS['data_dir']  # 使用默认的 data 目录
+            
+            # 更新配置文件中的目录设置
+            try:
+                config['data_dir'] = self.data_dir
+                config_path = os.path.join('configs', 'user_configs.json')
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, ensure_ascii=False, indent=4)
+            except Exception as e:
+                print(f"更新配置文件失败: {str(e)}")
+        
         self.ensure_data_directory()
         self.data_all = []
         

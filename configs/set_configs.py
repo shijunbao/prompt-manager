@@ -171,9 +171,17 @@ class SettingsWindow:
             if not new_config['file_extension']:
                 raise ValueError("文件扩展名不能为空")
                 
-            # 确保目录存在
-            os.makedirs(new_config['data_dir'], exist_ok=True)
-            
+            # 尝试创建目录，如果失败则使用默认目录
+            try:
+                os.makedirs(new_config['data_dir'], exist_ok=True)
+            except Exception as e:
+                messagebox.showwarning(
+                    "警告",
+                    f"创建目录失败: {str(e)}\n将使用默认目录",
+                    parent=self.window
+                )
+                new_config['data_dir'] = configs_data.DATA_PATHS['data_dir']
+                
             # 保存配置
             os.makedirs(os.path.dirname(configs_data.CONFIG_FILE), exist_ok=True)
             with open(configs_data.CONFIG_FILE, 'w', encoding='utf-8') as f:
