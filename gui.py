@@ -282,6 +282,7 @@ class PromptAssistantGUI:
                     data = json.load(f)
                     print(f"加载文件内容: {data}")
                     self.fill_text_fields(data)
+                    # 更新缓存
                     self.data_manager.cache_prompt(data['content'])
                     
                     # 如果当前有搜索关键词，立即高亮显示

@@ -82,34 +82,6 @@ class EditPromptWindow:
         # 设置焦点到文本框
         self.content_text.focus_set()
         
-    def save_content_with_flash(self):
-        """保存内容并闪烁提示"""
-        try:
-            # 读取当前JSON文件
-            with open(self.data_manager.get_data_path(self.current_file), 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # 更新content字段
-            data['content'] = self.content_text.get('1.0', 'end-1c')
-            
-            # 保存回文件
-            with open(self.data_manager.get_data_path(self.current_file), 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-                
-            # 更新原始内容（用于检查是否有改动）
-            self.original_content = self.content_text.get('1.0', 'end-1c')
-            
-            # 调用回调函数更新主界面
-            if self.callback:
-                self.callback(self.original_content)
-            
-            # 闪烁效果
-            self.content_text.configure(bg='light green')
-            self.window.after(200, lambda: self.content_text.configure(bg='white'))
-            
-        except Exception as e:
-            messagebox.showerror("错误", f"保存失败: {str(e)}", parent=self.window)
-        
     def save_content(self):
         """保存内容到JSON文件"""
         try:
@@ -118,18 +90,54 @@ class EditPromptWindow:
                 data = json.load(f)
             
             # 更新content字段
-            data['content'] = self.content_text.get('1.0', 'end-1c')
+            content = self.content_text.get('1.0', 'end-1c')
+            data['content'] = content
             
             # 保存回文件
             with open(self.data_manager.get_data_path(self.current_file), 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
                 
             # 更新原始内容（用于检查是否有改动）
-            self.original_content = self.content_text.get('1.0', 'end-1c')
+            self.original_content = content
+            
+            # 更新缓存
+            self.data_manager.cache_prompt(content)
             
             # 调用回调函数更新主界面
             if self.callback:
                 self.callback(self.original_content)
+            
+        except Exception as e:
+            messagebox.showerror("错误", f"保存失败: {str(e)}", parent=self.window)
+        
+    def save_content_with_flash(self):
+        """保存内容并闪烁提示"""
+        try:
+            # 读取当前JSON文件
+            with open(self.data_manager.get_data_path(self.current_file), 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # 更新content字段
+            content = self.content_text.get('1.0', 'end-1c')
+            data['content'] = content
+            
+            # 保存回文件
+            with open(self.data_manager.get_data_path(self.current_file), 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+                
+            # 更新原始内容（用于检查是否有改动）
+            self.original_content = content
+            
+            # 更新缓存
+            self.data_manager.cache_prompt(content)
+            
+            # 调用回调函数更新主界面
+            if self.callback:
+                self.callback(self.original_content)
+            
+            # 闪烁效果
+            self.content_text.configure(bg='light green')
+            self.window.after(200, lambda: self.content_text.configure(bg='white'))
             
         except Exception as e:
             messagebox.showerror("错误", f"保存失败: {str(e)}", parent=self.window)
